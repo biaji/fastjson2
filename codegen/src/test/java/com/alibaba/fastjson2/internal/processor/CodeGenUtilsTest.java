@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class CodeGenUtilsTest {
     @Test
-    public void getSupperClass() {
+    public void getSuperClass() {
         for (int i = 1; i <= 12; i++) {
             assertEquals("ObjectReader" + i, CodeGenUtils.getSuperClass(i).getSimpleName());
         }

@@ -112,12 +112,12 @@ public class JSONCompiledAnnotationProcessor
 
         List<AttributeInfo> fields = si.getReaderAttributes();
 
-        Class supperClass = CodeGenUtils.getSuperClass(fields.size());
-        ClassWriter cw = new ClassWriter(packageName, generateClassName, supperClass, new Class[0]);
+        Class superClass = CodeGenUtils.getSuperClass(fields.size());
+        ClassWriter cw = new ClassWriter(packageName, generateClassName, superClass, new Class[0]);
 
         final boolean generatedFields = fields.size() < 128;
         if (generatedFields) {
-            genFields(fields, cw, supperClass);
+            genFields(fields, cw, superClass);
         }
 
         {
@@ -180,7 +180,7 @@ public class JSONCompiledAnnotationProcessor
                     Opcodes.allocateArray(FieldReader.class, null, fieldReaders)
             );
 
-            genInitFields(fields.size(), generatedFields, "fieldReaders", mw, supperClass);
+            genInitFields(fields.size(), generatedFields, "fieldReaders", mw, superClass);
         }
 
         {
