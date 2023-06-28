@@ -5,6 +5,7 @@ import com.sun.tools.javac.code.TypeTag;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.List;
+import com.sun.tools.javac.util.ListBuffer;
 import com.sun.tools.javac.util.Name;
 import com.sun.tools.javac.util.Names;
 
@@ -24,6 +25,10 @@ final class JavacTreeUtils {
         treeMaker = _treeMaker;
         names = _names;
         elements = _elements;
+    }
+
+    static JCTree.JCLiteral defNull() {
+        return literal(TypeTag.BOT, null);
     }
 
     static Name name(String name) {
@@ -47,6 +52,75 @@ final class JavacTreeUtils {
         }
     }
 
+    static JCTree.JCExpression arrayIdent(String name) {
+        int idx = name.indexOf("[");
+        String type = name.substring(0, idx);
+        int count = 0;
+        for (char c : name.substring(idx).toCharArray()) {
+            if (c == '[') {
+                count++;
+            }
+        }
+        JCTree.JCExpression elemTypeExpr;
+        switch (type) {
+            case "int":
+                elemTypeExpr = treeMaker.TypeIdent(TypeTag.INT);
+                break;
+            case "long":
+                elemTypeExpr = treeMaker.TypeIdent(TypeTag.LONG);
+                break;
+            case "float":
+                elemTypeExpr = treeMaker.TypeIdent(TypeTag.FLOAT);
+                break;
+            case "double":
+                elemTypeExpr = treeMaker.TypeIdent(TypeTag.DOUBLE);
+                break;
+            case "boolean":
+                elemTypeExpr = treeMaker.TypeIdent(TypeTag.BOOLEAN);
+                break;
+            case "char":
+                elemTypeExpr = treeMaker.TypeIdent(TypeTag.CHAR);
+                break;
+            case "byte":
+                elemTypeExpr = treeMaker.TypeIdent(TypeTag.BYTE);
+                break;
+            case "short":
+                elemTypeExpr = treeMaker.TypeIdent(TypeTag.SHORT);
+                break;
+            default:
+                elemTypeExpr = qualIdent(type);
+        }
+        return arrayType(elemTypeExpr, count);
+    }
+
+    private static JCTree.JCArrayTypeTree arrayType(JCTree.JCExpression elemTypeExpr, int dims) {
+        if (dims == 1) {
+            return treeMaker.TypeArray(elemTypeExpr);
+        } else {
+            return treeMaker.TypeArray(arrayType(elemTypeExpr, dims - 1));
+        }
+    }
+
+    static JCTree.JCTypeApply collectionIdent(String type) {
+        return collectionType(type);
+    }
+
+    private static JCTree.JCTypeApply collectionType(String type) {
+        int open = type.indexOf("<");
+        int close = type.indexOf(">");
+        String clazz = type.substring(0, open);
+        if (close == type.length() - 1) {
+            String args = type.substring(open + 1, close);
+            ListBuffer<JCTree.JCExpression> generics = new ListBuffer<>();
+            for (String g : args.split(",")) {
+                generics.append(qualIdent(g));
+            }
+            return typeApply(qualIdent(clazz), generics.toList());
+        } else {
+            return typeApply(qualIdent(clazz), List.of(collectionType(type.substring(open + 1, close + 1))));
+        }
+    }
+
     static JCTree.JCVariableDecl defVar(long flag, String identName, JCTree.JCExpression identType) {
         return defVar(flag, identName, identType, null);
     }
@@ -60,6 +134,15 @@ final class JavacTreeUtils {
     }
 
     static JCTree.JCMethodDecl defMethod(int flag, Name name, JCTree.JCExpression rtnType, List<JCTree.JCTypeParameter> typeArgs, List<JCTree.JCVariableDecl> params, List<JCTree.JCExpression> recvArgs, JCTree.JCBlock block, JCTree.JCExpression defaultValue) {
+        if (typeArgs == null) {
+            typeArgs = List.nil();
+        }
+        if (params == null) {
+            params = List.nil();
+        }
+        if (recvArgs == null) {
+            recvArgs = List.nil();
+        }
         return treeMaker.MethodDef(modifiers(flag), name, rtnType, typeArgs, params, recvArgs, block, defaultValue);
     }
 
@@ -113,6 +196,18 @@ final class JavacTreeUtils {
         return treeMaker.Unary(tag, expr);
     }
 
+    static JCTree.JCBlock block(JCTree.JCStatement stmt) {
+        return block(0, stmt);
+    }
+
+    static JCTree.JCBlock block(long pos, JCTree.JCStatement stmt) {
+        return block(pos, List.of(stmt));
+    }
+
+    static JCTree.JCBlock block(List<JCTree.JCStatement> stmts) {
+        return block(0, stmts);
+    }
+
     static JCTree.JCBlock block(long pos, List<JCTree.JCStatement> stmts) {
         return treeMaker.Block(pos, stmts);
     }
@@ -130,6 +225,12 @@ final class JavacTreeUtils {
     }
 
     static JCTree.JCNewClass newClass(JCTree.JCExpression encl, List<JCTree.JCExpression> typeArgs, JCTree.JCExpression clazz, List<JCTree.JCExpression> args, JCTree.JCClassDecl def) {
+        if (typeArgs == null) {
+            typeArgs = List.nil();
+        }
+        if (args == null) {
+            args = List.nil();
+        }
         return treeMaker.NewClass(encl, typeArgs, clazz, args, def);
     }
 
